@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>喵喵自律 · 猫咪主题习惯打卡与日历</title>
+<style>
+  :root{
+    --bg:#f0f7ff;
+    --bg2:#e3f2fd;
+    --card:#ffffff;
+    --ink:#3d5a73;
+    --ink-soft:#7a93a8;
+    --sky:#7ec8e3;
+    --sky-deep:#4fa8d5;
+    --mint:#b5e8d4;
+    --mint-deep:#6fceaa;
+    --amber:#f0c674;
+    --line:#d5e8f7;
+    --shadow:0 8px 24px rgba(79,168,213,.15);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+    background:linear-gradient(160deg,var(--bg) 0%,var(--bg2) 100%);
+    color:var(--ink);
+    min-height:100vh;
+    padding:24px 16px 60px;
+  }
+  .wrap{max-width:820px;margin:0 auto;}
+  /* SVG icon base */
+  .ic{flex-shrink:0;display:inline-block;vertical-align:middle;}
+  /* Header */
+  header{
+    display:flex;align-items:center;gap:14px;
+    background:var(--card);border-radius:24px;padding:18px 22px;
+    box-shadow:var(--shadow);margin-bottom:18px;
+  }
+  .mascot{width:64px;height:64px;flex:0 0 auto;cursor:pointer;}
+  .mascot svg{width:100%;height:100%;}
+  .title h1{font-size:22px;font-weight:800;letter-spacing:.5px;}
+  .title p{font-size:13px;color:var(--ink-soft);margin-top:2px;}
+  .date-pill{
+    margin-left:auto;background:var(--bg2);color:var(--sky-deep);
+    font-size:13px;font-weight:700;padding:8px 14px;border-radius:999px;
+  }
+  /* Dashboard */
+  .dash{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+  .stat-card{
+    background:var(--card);border-radius:20px;padding:16px 18px;
+    box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;
+  }
+  .stat-card .big{font-size:30px;font-weight:800;color:var(--sky-deep);line-height:1;}
+  .stat-card .lbl{font-size:13px;color:var(--ink-soft);margin-top:4px;}
+  .stat-card .emoji{width:44px;height:44px;flex:0 0 auto;display:flex;
+    align-items:center;justify-content:center;background:var(--bg2);
+    border-radius:14px;color:var(--sky-deep);}
+  /* Reminder banner */
+  .reminder{
+    background:linear-gradient(120deg,#e8f4ff,#d6ecfa);
+    border:1px dashed var(--sky);border-radius:18px;padding:14px 18px;
+    margin-bottom:18px;display:none;align-items:flex-start;gap:12px;
+    box-shadow:var(--shadow);
+  }
+  .reminder.show{display:flex;animation:pop .4s ease;}
+  .reminder .ic-wrap{width:28px;height:28px;flex:0 0 auto;color:var(--sky-deep);
+    display:flex;align-items:center;justify-content:center;margin-top:1px;}
+  .reminder .body{font-size:14px;line-height:1.6;}
+  .reminder b{color:var(--sky-deep);}
+  .reminder .close{cursor:pointer;color:var(--ink-soft);font-size:18px;margin-left:auto;}
+  /* Tabs */
+  .tabs{display:flex;gap:8px;margin-bottom:16px;background:var(--card);
+    padding:6px;border-radius:18px;box-shadow:var(--shadow);flex-wrap:wrap;}
+  .tab{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:5px;
+    padding:10px 8px;border-radius:13px;cursor:pointer;
+    font-weight:700;font-size:13.5px;color:var(--ink-soft);transition:.2s;
+    border:none;background:transparent;min-width:70px;}
+  .tab.active{background:var(--sky);color:#fff;box-shadow:0 4px 12px rgba(79,168,213,.4);}
+  .tab.active .ic{color:#fff;}
+  /* Panels */
+  .panel{display:none;}
+  .panel.active{display:block;animation:fade .3s ease;}
+  /* Calendar */
+  .cal-card{background:var(--card);border-radius:20px;padding:18px;box-shadow:var(--shadow);margin-bottom:14px;}
+  .cal-nav{display:flex;align-items:center;gap:14px;margin-bottom:14px;}
+  .cal-nav .month{font-size:18px;font-weight:800;color:var(--ink);flex:1;text-align:center;}
+  .cal-nav button{border:none;background:var(--bg2);color:var(--sky-deep);width:36px;height:36px;
+    border-radius:12px;cursor:pointer;font-weight:700;transition:.15s;
+    display:inline-flex;align-items:center;justify-content:center;}
+  .cal-nav button:hover{background:var(--sky);color:#fff;}
+  .cal-nav .today-btn{width:auto;padding:0 14px;font-size:13px;border-radius:999px;}
+  .cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:6px;}
+  .cal-head div{text-align:center;font-size:12px;color:var(--ink-soft);font-weight:700;padding:4px 0;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+  .cal-cell{
+    min-height:78px;border-radius:12px;background:#f8fbff;border:2px solid transparent;
+    padding:6px 4px 4px;display:flex;flex-direction:column;cursor:pointer;transition:.15s;position:relative;
+  }
+  .cal-cell:hover{border-color:var(--line);}
+  .cal-cell.other-month{opacity:.4;}
+  .cal-cell.today{border-color:var(--sky);background:#eaf6ff;}
+  .cal-cell.selected{border-color:var(--sky-deep);background:#e3f2fd;}
+  .cal-cell.has-activity{background:#eef7ff;}
+  .cal-cell .dnum{font-size:14px;font-weight:700;color:var(--ink);text-align:center;margin-bottom:3px;}
+  .cal-cell.today .dnum{color:var(--sky-deep);}
+  .cal-dots{display:flex;gap:3px;justify-content:center;flex-wrap:wrap;margin-bottom:2px;}
+  .cal-dot{width:8px;height:8px;border-radius:50%;border:1.5px solid #c8dde8;background:transparent;}
+  .cal-dot.done{background:var(--c,#4fa8d5);border-color:var(--c,#4fa8d5);}
+  .cal-todo-badge{
+    font-size:10px;font-weight:700;text-align:center;margin-top:auto;
+    background:var(--bg2);color:var(--sky-deep);border-radius:999px;padding:1px 6px;align-self:center;
+  }
+  .cal-todo-badge.all-done{background:var(--mint);color:#fff;}
+  .cal-todo-badge.has-pending{background:#fff3d6;color:#b88a2a;}
+  .cal-todo-badge.overdue{background:#fde4e4;color:#c25450;}
+  .cal-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--ink-soft);margin-top:12px;padding-top:10px;border-top:1px solid var(--line);}
+  .cal-legend span{display:flex;align-items:center;gap:5px;}
+  .cal-legend .sq{width:12px;height:12px;border-radius:4px;display:inline-block;}
+  /* Day detail */
+  .day-detail{background:var(--card);border-radius:20px;padding:18px;box-shadow:var(--shadow);margin-bottom:14px;display:none;}
+  .day-detail.show{display:block;animation:fade .3s ease;}
+  .day-detail h3{font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+  .day-detail h3 .ic{color:var(--sky-deep);}
+  .day-detail h3 .close-dd{margin-left:auto;cursor:pointer;color:var(--ink-soft);font-size:18px;}
+  .dd-section{margin-bottom:14px;}
+  .dd-section .label{font-size:12.5px;color:var(--ink-soft);font-weight:700;margin-bottom:6px;}
+  .dd-habit-row,.dd-todo-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);}
+  .dd-habit-row:last-child,.dd-todo-row:last-child{border-bottom:none;}
+  .dd-habit-row .nm{flex:1;font-size:14px;display:flex;align-items:center;gap:8px;}
+  .dd-todo-row .nm{flex:1;font-size:14px;}
+  .dd-todo-row .nm.done-todo{text-decoration:line-through;color:var(--ink-soft);}
+  .dd-mini-check{width:30px;height:30px;border-radius:9px;border:2px solid var(--line);background:#f8fbff;
+    cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;transition:.15s;}
+  .dd-mini-check.done{background:var(--mint-deep);border-color:var(--mint-deep);color:#fff;}
+  .dd-add{display:flex;gap:8px;margin-top:10px;}
+  .dd-add input{flex:1;padding:10px 12px;border:2px solid var(--line);border-radius:11px;font-size:14px;background:#f8fbff;color:var(--ink);outline:none;}
+  .dd-add input:focus{border-color:var(--sky);}
+  .dd-add button{border:none;background:var(--sky);color:#fff;font-weight:700;font-size:13px;
+    padding:0 16px;border-radius:11px;cursor:pointer;}
+  .dd-empty{font-size:13px;color:var(--ink-soft);padding:8px 0;}
+  /* Add row */
+  .add-row{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+  .add-row input[type=text]{
+    flex:1;min-width:160px;padding:13px 16px;border:2px solid var(--line);
+    border-radius:14px;font-size:15px;background:#f8fbff;color:var(--ink);outline:none;
+  }
+  .add-row input[type=text]:focus{border-color:var(--sky);}
+  .add-row input[type=time]{padding:13px;border:2px solid var(--line);border-radius:14px;background:#f8fbff;color:var(--ink);}
+  .btn{
+    border:none;cursor:pointer;font-weight:800;font-size:15px;
+    padding:13px 20px;border-radius:14px;background:var(--sky);color:#fff;
+    box-shadow:0 4px 12px rgba(79,168,213,.4);transition:.15s;white-space:nowrap;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .btn:hover{transform:translateY(-2px);}
+  .btn:active{transform:translateY(0);}
+  .btn.ghost{background:#fff;color:var(--sky-deep);border:2px solid var(--line);box-shadow:none;}
+  .btn.mint{background:var(--mint-deep);box-shadow:0 4px 12px rgba(111,206,170,.4);}
+  .btn.sm{padding:9px 14px;font-size:13px;border-radius:11px;}
+  /* Repeat rule UI */
+  .todo-form{background:var(--card);border-radius:18px;padding:16px 18px;box-shadow:var(--shadow);margin-bottom:16px;}
+  .todo-form .row{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+  .todo-form label.fld{font-size:12.5px;color:var(--ink-soft);font-weight:700;margin-bottom:5px;display:block;}
+  .seg{display:flex;gap:6px;flex-wrap:wrap;}
+  .seg button{
+    border:2px solid var(--line);background:#f8fbff;color:var(--ink-soft);
+    padding:8px 12px;border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;
+  }
+  .seg button.active{background:var(--sky);color:#fff;border-color:var(--sky);}
+  .weekday-pick{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;}
+  .weekday-pick button{
+    width:38px;height:36px;border:2px solid var(--line);background:#f8fbff;color:var(--ink-soft);
+    border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;
+  }
+  .weekday-pick button.active{background:var(--sky);color:#fff;border-color:var(--sky);}
+  .date-pick{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;}
+  .date-pick input[type=date]{padding:8px 10px;border:2px solid var(--line);border-radius:10px;font-size:13px;background:#f8fbff;color:var(--ink);}
+  .date-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .date-chip{font-size:12px;background:var(--bg2);color:var(--sky-deep);padding:4px 10px;border-radius:999px;display:flex;align-items:center;gap:6px;font-weight:700;}
+  .date-chip .x{cursor:pointer;opacity:.6;font-size:14px;}
+  .date-chip .x:hover{opacity:1;}
+  /* Cards */
+  .card{
+    background:var(--card);border-radius:18px;padding:16px 18px;margin-bottom:12px;
+    box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;
+  }
+  .card .ic-box{width:46px;height:46px;flex:0 0 auto;display:flex;
+    align-items:center;justify-content:center;background:var(--bg2);border-radius:14px;}
+  .card .ic-dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;}
+  .card .info{flex:1;min-width:0;}
+  .card .name{font-weight:700;font-size:16px;}
+  .card .meta{font-size:12.5px;color:var(--ink-soft);margin-top:3px;display:flex;align-items:center;gap:4px;}
+  .streak{color:var(--sky-deep);font-weight:800;}
+  .week{display:flex;gap:5px;margin-top:7px;}
+  .dot{width:18px;height:18px;border-radius:6px;background:var(--line);font-size:10px;
+    display:flex;align-items:center;justify-content:center;color:#fff;}
+  .dot.done{background:var(--mint-deep);}
+  .dot.today{outline:2px solid var(--sky);outline-offset:1px;}
+  .check-btn{
+    width:50px;height:50px;border-radius:16px;border:2px solid var(--line);
+    background:#f8fbff;cursor:pointer;font-size:24px;display:flex;align-items:center;
+    justify-content:center;transition:.15s;flex:0 0 auto;color:var(--sky-deep);
+  }
+  .check-btn:hover{border-color:var(--mint-deep);}
+  .check-btn.done{background:var(--mint-deep);border-color:var(--mint-deep);color:#fff;}
+  .check-btn.bump{animation:bump .5s ease;}
+  .todo-card .name.done-todo{text-decoration:line-through;color:var(--ink-soft);}
+  .badge{font-size:11px;background:var(--bg2);color:var(--sky-deep);padding:2px 8px;border-radius:999px;margin-left:6px;font-weight:700;display:inline-flex;align-items:center;gap:3px;}
+  .badge.repeat{background:var(--mint);color:#fff;}
+  .del{cursor:pointer;color:var(--ink-soft);font-size:20px;margin-left:6px;flex:0 0 auto;
+    width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;transition:.15s;}
+  .del:hover{background:#dceef9;color:var(--sky-deep);}
+  .empty{text-align:center;color:var(--ink-soft);padding:40px 0;font-size:14px;}
+  .empty .e{display:flex;justify-content:center;margin-bottom:10px;color:var(--sky-deep);opacity:.5;}
+  .empty .e svg{width:48px;height:48px;}
+  /* stats */
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+  .stat-box{background:var(--card);border-radius:18px;padding:18px;text-align:center;box-shadow:var(--shadow);}
+  .stat-box .n{font-size:28px;font-weight:800;color:var(--sky-deep);}
+  .stat-box .t{font-size:12.5px;color:var(--ink-soft);margin-top:4px;}
+  .heat{background:var(--card);border-radius:18px;padding:18px;box-shadow:var(--shadow);margin-bottom:12px;}
+  .heat h3{font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:6px;color:var(--ink);}
+  .heat h3 .ic{color:var(--sky-deep);}
+  .heat .grid{display:grid;grid-template-columns:repeat(14,1fr);gap:5px;}
+  .heat .cell{aspect-ratio:1;border-radius:5px;background:var(--line);}
+  .heat .cell.lvl1{background:#d5e8f7;}.heat .cell.lvl2{background:#a3d5f0;}.heat .cell.lvl3{background:var(--sky);}.heat .cell.lvl4{background:var(--sky-deep);}
+  /* settings */
+  .set-card{background:var(--card);border-radius:18px;padding:18px 20px;box-shadow:var(--shadow);margin-bottom:12px;}
+  .set-card h3{font-size:15px;margin-bottom:10px;display:flex;align-items:center;gap:6px;color:var(--ink);}
+  .set-card h3 .ic{color:var(--sky-deep);}
+  .set-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);gap:10px;}
+  .set-row:last-child{border-bottom:none;}
+  .set-row .desc{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+  .switch{position:relative;width:50px;height:28px;flex:0 0 auto;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;inset:0;background:var(--line);border-radius:999px;transition:.2s;cursor:pointer;}
+  .slider:before{content:"";position:absolute;height:22px;width:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+  .switch input:checked + .slider{background:var(--mint-deep);}
+  .switch input:checked + .slider:before{transform:translateX(22px);}
+  .set-row input[type=text]{padding:9px 12px;border:2px solid var(--line);border-radius:10px;font-size:14px;background:#f8fbff;color:var(--ink);width:140px;outline:none;}
+  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:12px 22px;border-radius:14px;font-size:14px;
+    opacity:0;pointer-events:none;transition:.3s;z-index:99;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  footer{text-align:center;color:var(--ink-soft);font-size:12px;margin-top:24px;display:flex;align-items:center;justify-content:center;gap:5px;}
+  footer .ic{opacity:.5;}
+  @keyframes bump{0%{transform:scale(1);}40%{transform:scale(1.25) rotate(-8deg);}100%{transform:scale(1);}}
+  @keyframes pop{0%{transform:scale(.95);opacity:0;}100%{transform:scale(1);opacity:1;}}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  @media(max-width:560px){.dash{grid-template-columns:1fr;}.stat-grid{grid-template-columns:1fr 1fr;}.cal-cell{min-height:62px;}.cal-cell .dnum{font-size:12px;}}
+</style>
+</head>
+<body>
+
+<!-- ===== SVG SPRITE (define once, reference via <use>) ===== -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="ic-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+    <symbol id="ic-check-circle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+    <symbol id="ic-note" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></symbol>
+    <symbol id="ic-bell" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
+    <symbol id="ic-calendar" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></symbol>
+    <symbol id="ic-paw" viewBox="0 0 24 24"><circle cx="11" cy="5" r="1.8"/><circle cx="17.5" cy="8.5" r="1.8"/><circle cx="4.5" cy="8.5" r="1.8"/><circle cx="8" cy="14" r="1.8"/><circle cx="14" cy="14" r="1.8"/><path d="M5.5 17.5c0-2.2 2.5-3.5 6.5-3.5s6.5 1.3 6.5 3.5-2 3.5-6.5 3.5-6.5-1.3-6.5-3.5z"/></symbol>
+    <symbol id="ic-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1.5v3M12 19.5v3M4.5 4.5l2.1 2.1M17.4 17.4l2.1 2.1M1.5 12h3M19.5 12h3M4.5 19.5l2.1-2.1M17.4 6.6l2.1-2.1"/></symbol>
+    <symbol id="ic-trophy" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></symbol>
+    <symbol id="ic-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></symbol>
+    <symbol id="ic-flame" viewBox="0 0 24 24"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.14-.5-4.5.5-6 .5 1.5 1.5 3 3 4.5 1.5 1.5 2 3 2 5a6.5 6.5 0 0 1-13 0c0-1.5.5-3 1-4 .5 1 1 1.5 1 2.5"/></symbol>
+    <symbol id="ic-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></symbol>
+    <symbol id="ic-clipboard" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></symbol>
+    <symbol id="ic-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+    <symbol id="ic-chevron-left" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></symbol>
+    <symbol id="ic-chevron-right" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol>
+    <symbol id="ic-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+    <symbol id="ic-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+    <symbol id="ic-bar-chart" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></symbol>
+    <symbol id="ic-alert" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+    <symbol id="ic-archive" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></symbol>
+    <symbol id="ic-heart" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header>
+    <div class="mascot" id="mascot"></div>
+    <div class="title">
+      <h1>喵喵自律</h1>
+      <p id="catNameLine">和 <span id="catName">咪咪</span> 一起，每天进步一点点</p>
+    </div>
+    <div class="date-pill" id="datePill"></div>
+  </header>
+
+  <div class="dash">
+    <div class="stat-card">
+      <div class="emoji"><svg class="ic" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-check-circle"/></svg></div>
+      <div><div class="big" id="habitToday">0/0</div><div class="lbl">今日习惯打卡</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="emoji"><svg class="ic" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-note"/></svg></div>
+      <div><div class="big" id="todoPending">0</div><div class="lbl">今日待办未完成</div></div>
+    </div>
+  </div>
+
+  <div class="reminder" id="reminder">
+    <div class="ic-wrap"><svg class="ic" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-bell"/></svg></div>
+    <div class="body" id="reminderBody"></div>
+    <div class="close" id="reminderClose"><svg class="ic" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-x"/></svg></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="calendar"><svg class="ic" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-calendar"/></svg> 日历</button>
+    <button class="tab" data-tab="habits"><svg class="ic" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-paw"/></svg> 习惯</button>
+    <button class="tab" data-tab="todos"><svg class="ic" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-note"/></svg> 待办</button>
+    <button class="tab" data-tab="stats"><svg class="ic" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-bar-chart"/></svg> 统计</button>
+    <button class="tab" data-tab="settings"><svg class="ic" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-gear"/></svg> 设置</button>
+  </div>
+
+  <!-- CALENDAR -->
+  <section class="panel active" id="panel-calendar">
+    <div class="cal-card">
+      <div class="cal-nav">
+        <button id="calPrev" title="上一月"><svg class="ic" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-chevron-left"/></svg></button>
+        <div class="month" id="calMonth"></div>
+        <button id="calNext" title="下一月"><svg class="ic" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-chevron-right"/></svg></button>
+        <button class="today-btn" id="calToday">今天</button>
+      </div>
+      <div class="cal-head" id="calHead"></div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-legend">
+        <span><span class="sq" style="background:var(--sky)"></span>今天</span>
+        <span><span class="sq" style="background:#eef7ff;border:1px solid var(--line)"></span>有活动</span>
+        <span><span class="cal-dot done" style="--c:var(--sky-deep)"></span>已打卡</span>
+        <span><span class="cal-dot" style="border-color:#c8dde8"></span>未打卡</span>
+        <span><span class="cal-todo-badge all-done">2/2</span>待办全完成</span>
+        <span><span class="cal-todo-badge has-pending">1/3</span>有未完成</span>
+      </div>
+    </div>
+    <div class="day-detail" id="dayDetail"></div>
+  </section>
+
+  <!-- HABITS -->
+  <section class="panel" id="panel-habits">
+    <div class="add-row">
+      <input type="text" id="habitInput" placeholder="添加一个想坚持的习惯，比如「喝水 8 杯」" maxlength="40">
+      <button class="btn" id="habitAdd"><svg class="ic" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-plus"/></svg> 添加习惯</button>
+    </div>
+    <div id="habitList"></div>
+  </section>
+
+  <!-- TODOS -->
+  <section class="panel" id="panel-todos">
+    <div class="todo-form">
+      <div class="row">
+        <div style="flex:1;min-width:160px;">
+          <div class="fld">待办内容</div>
+          <input type="text" id="todoInput" placeholder="比如「写周报」" maxlength="40" style="width:100%;padding:13px 16px;border:2px solid var(--line);border-radius:14px;font-size:15px;background:#f8fbff;color:var(--ink);outline:none;">
+        </div>
+        <div>
+          <div class="fld">计划时间</div>
+          <input type="time" id="todoTime" style="padding:13px;border:2px solid var(--line);border-radius:14px;background:#f8fbff;color:var(--ink);">
+        </div>
+      </div>
+      <div>
+        <div class="fld">重复</div>
+        <div class="seg" id="repeatSeg">
+          <button data-rt="none" class="active">不重复</button>
+          <button data-rt="daily">每天</button>
+          <button data-rt="weekly">每周几</button>
+          <button data-rt="custom">自选日期</button>
+        </div>
+        <div class="weekday-pick" id="weekdayPick" style="display:none">
+          <button data-wd="0">日</button>
+          <button data-wd="1">一</button>
+          <button data-wd="2">二</button>
+          <button data-wd="3">三</button>
+          <button data-wd="4">四</button>
+          <button data-wd="5">五</button>
+          <button data-wd="6">六</button>
+        </div>
+        <div class="date-pick" id="datePick" style="display:none">
+          <input type="date" id="customDate">
+          <button class="btn sm" id="addCustomDate"><svg class="ic" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-plus"/></svg> 添加日期</button>
+        </div>
+        <div class="date-chips" id="dateChips"></div>
+      </div>
+      <div style="margin-top:14px;">
+        <button class="btn mint" id="todoAdd"><svg class="ic" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-plus"/></svg> 添加待办</button>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:13px;color:var(--ink-soft);">
+      <span id="todoScopeLabel">今日待办</span>
+      <button class="btn sm ghost" id="todoScopeToggle">显示全部</button>
+    </div>
+    <div id="todoList"></div>
+  </section>
+
+  <!-- STATS -->
+  <section class="panel" id="panel-stats">
+    <div class="stat-grid">
+      <div class="stat-box"><div class="n" id="stTotal">0</div><div class="t">累计打卡次数</div></div>
+      <div class="stat-box"><div class="n" id="stBest">0</div><div class="t">最长连续天数</div></div>
+      <div class="stat-box"><div class="n" id="stRate">0%</div><div class="t">今日习惯完成率</div></div>
+    </div>
+    <div class="heat">
+      <h3><svg class="ic" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-calendar"/></svg> 近 14 周打卡热力图（所有习惯合计）</h3>
+      <div class="grid" id="heatGrid"></div>
+    </div>
+    <div class="heat">
+      <h3><svg class="ic" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-trophy"/></svg> 各习惯最长连续</h3>
+      <div id="streakList"></div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="panel" id="panel-settings">
+    <div class="set-card">
+      <h3><svg class="ic" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-bell"/></svg> 提醒设置</h3>
+      <div class="set-row">
+        <div><div>浏览器桌面通知</div><div class="desc">打开应用且有待办未完成时弹出提醒</div></div>
+        <label class="switch"><input type="checkbox" id="setNotify"><span class="slider"></span></label>
+      </div>
+      <div class="set-row">
+        <div><div>开启每日提醒横幅</div><div class="desc">进入应用时显示今日未完成清单</div></div>
+        <label class="switch"><input type="checkbox" id="setBanner" checked><span class="slider"></span></label>
+      </div>
+    </div>
+    <div class="set-card">
+      <h3><svg class="ic" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-paw"/></svg> 猫咪伙伴</h3>
+      <div class="set-row">
+        <div><div>给猫咪起个名字</div><div class="desc">会显示在主页标题下方</div></div>
+        <input type="text" id="setCatName" maxlength="8" placeholder="咪咪">
+      </div>
+      <div class="set-row">
+        <div><div>心情（点击撸猫）</div><div class="desc">每次点击猫咪会有小反应～</div></div>
+        <button class="btn ghost" id="petCat"><svg class="ic" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-heart"/></svg> 撸一下</button>
+      </div>
+    </div>
+    <div class="set-card">
+      <h3><svg class="ic" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-archive"/></svg> 数据管理</h3>
+      <div class="set-row">
+        <div><div>清空所有数据</div><div class="desc">习惯、待办与记录将全部删除，不可恢复</div></div>
+        <button class="btn ghost" id="resetAll" style="color:#e06a6a">清空</button>
+      </div>
+      <div class="set-row">
+        <div><div>导出备份（JSON）</div><div class="desc">下载一份数据备份到电脑</div></div>
+        <button class="btn ghost" id="exportData"><svg class="ic" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-download"/></svg> 下载</button>
+      </div>
+    </div>
+  </section>
+
+  <footer><svg class="ic" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-paw"/></svg> 数据仅保存在你的这台电脑浏览器中 · 关掉网页不会丢失</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- SVG icon helper ---------- */
+function icon(name, size){
+  size = size || 20;
+  return `<svg class="ic" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#ic-${name}"/></svg>`;
+}
+
+/* ---------- 工具函数 ---------- */
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+/* 本地日期键，避免 toISOString 的 UTC 跨天错位 */
+function dateKey(d){
+  d = d || new Date();
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), da=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${da}`;
+}
+const todayKey = () => dateKey(new Date());
+function parseKey(k){const [y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d);}
+function addDays(k,n){const d=parseKey(k);d.setDate(d.getDate()+n);return dateKey(d);}
+function isBefore(a,b){return parseKey(a)<parseKey(b);}
+function fmtDate(d){const w=["日","一","二","三","四","五","六"];return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 · 周${w[d.getDay()]}`;}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+
+/* ---------- 习惯代表色（淡天蓝系 + 少量薄荷） ---------- */
+const HABIT_COLORS=['#4fa8d5','#7ec8e3','#6fceaa','#5bb8e8','#8ed1ef','#5cc4d8','#a3d5f0','#7fd6c4'];
+
+/* ---------- 数据存储 ---------- */
+const KEY="cat_discipline_v2";
+let data = load();
+function load(){
+  try{
+    const r=localStorage.getItem(KEY);
+    if(r){
+      const d=JSON.parse(r);
+      migrateData(d);
+      return d;
+    }
+    /* try old v1 key for migration */
+    const old=localStorage.getItem("cat_discipline_v1");
+    if(old){
+      const d=JSON.parse(old);
+      migrateData(d);
+      return d;
+    }
+  }catch(e){}
+  return {habits:[],todos:[],settings:{notify:false,banner:true,catName:"咪咪",theme:"skyblue",weekStart:"sun"},lastOpen:todayKey(),calView:{y:new Date().getFullYear(),m:new Date().getMonth()}};
+}
+/* migrate old data: v1 habits(无color) + v1 todos(repeat boolean) */
+function migrateData(d){
+  d.settings=d.settings||{};
+  if(!('theme' in d.settings))d.settings.theme="skyblue";
+  if(!('weekStart' in d.settings))d.settings.weekStart="sun";
+  if(!('catName' in d.settings))d.settings.catName="咪咪";
+  if(!('notify' in d.settings))d.settings.notify=false;
+  if(!('banner' in d.settings))d.settings.banner=true;
+  (d.habits||[]).forEach(h=>{
+    if(!h.color)h.color=HABIT_COLORS[Math.floor(Math.random()*HABIT_COLORS.length)];
+    h.records=h.records||{};
+  });
+  (d.todos||[]).forEach(o=>{
+    if(o.repeat && typeof o.repeat==='object')return; /* already v2 */
+    const wasDaily = o.repeat===true;
+    o.repeat={type:wasDaily?'daily':'none',weekdays:[],dates:[]};
+    if(!o.date)o.date=todayKey();
+  });
+  if(!d.calView)d.calView={y:new Date().getFullYear(),m:new Date().getMonth()};
+  if(!d.lastOpen)d.lastOpen=todayKey();
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(data));}
+
+/* ---------- 重复规则：判断某待办在某日是否命中 ---------- */
+function todoHitsDate(o,date){
+  const r=o.repeat||{type:'none'};
+  if(r.type==='daily')return true;
+  if(r.type==='weekly')return (r.weekdays||[]).includes(parseKey(date).getDay());
+  if(r.type==='custom')return (r.dates||[]).includes(date);
+  return o.date===date; /* none */
+}
+function todosForDate(date){return data.todos.filter(o=>todoHitsDate(o,date));}
+function repeatLabel(o){
+  const r=o.repeat||{type:'none'};
+  if(r.type==='daily')return '每天';
+  if(r.type==='weekly'){
+    const w=["日","一","二","三","四","五","六"];
+    return '每周'+(r.weekdays||[]).sort().map(d=>w[d]).join('·');
+  }
+  if(r.type==='custom')return '自选'+(r.dates||[]).length+'天';
+  return '';
+}
+
+/* ---------- 跨天重置重复待办 ---------- */
+function dailyResetIfNeeded(){
+  const t=todayKey();
+  if(data.lastOpen!==t){
+    data.todos.forEach(o=>{
+      const r=o.repeat||{type:'none'};
+      if(r.type!=='none' && o.done && o.doneDate!==t){o.done=false;o.doneDate=null;}
+    });
+    data.lastOpen=t;save();
+  }
+}
+
+/* ---------- 连击计算 ---------- */
+function streakOf(habit){
+  let s=0;const rec=habit.records||{};let k=todayKey();
+  while(rec[k]){s++;k=addDays(k,-1);}
+  return s;
+}
+
+/* ---------- 渲染：顶部与仪表盘 ---------- */
+function renderHeader(){
+  $("#datePill").textContent=fmtDate(new Date());
+  $("#catName").textContent=data.settings.catName||"咪咪";
+  const done=data.habits.filter(h=>(h.records||{})[todayKey()]).length;
+  $("#habitToday").textContent=`${done}/${data.habits.length}`;
+  const pend=todosForDate(todayKey()).filter(o=>!o.done).length;
+  $("#todoPending").textContent=pend;
+}
+
+/* ---------- 渲染：日历主视图 ---------- */
+function monthMatrix(){
+  const y=data.calView.y, m=data.calView.m;
+  const first=new Date(y,m,1);
+  let offset=first.getDay();
+  if(data.settings.weekStart==='mon')offset=(offset+6)%7;
+  const start=new Date(y,m,1-offset);
+  const cells=[];
+  for(let w=0;w<6;w++){
+    const week=[];
+    for(let d=0;d<7;d++){
+      const cur=new Date(start);cur.setDate(start.getDate()+w*7+d);
+      week.push({date:dateKey(cur),inMonth:cur.getMonth()===m});
+    }
+    cells.push(week);
+  }
+  return cells;
+}
+function calendarDayState(date){
+  const t=todayKey();
+  const habits=data.habits.map(h=>({h,done:!!(h.records||{})[date]}));
+  const todos=todosForDate(date);
+  const pending=todos.filter(o=>!o.done).length;
+  const done=todos.filter(o=>o.done).length;
+  const overdue=todos.filter(o=>!o.done && isBefore(date,t)).length;
+  return {habits,habitDone:habits.filter(x=>x.done).length,habitTotal:habits.length,
+    todoPending:pending,todoDone:done,todoOverdue:overdue,todoTotal:todos.length,isToday:date===t};
+}
+let selectedDate=null;
+function renderCalendar(){
+  const y=data.calView.y,m=data.calView.m;
+  const wnames=data.settings.weekStart==='mon'?["一","二","三","四","五","六","日"]:["日","一","二","三","四","五","六"];
+  $("#calHead").innerHTML=wnames.map(w=>`<div>${w}</div>`).join('');
+  $("#calMonth").textContent=`${y} 年 ${m+1} 月`;
+  const grid=$("#calGrid");grid.innerHTML='';
+  const t=todayKey();
+  monthMatrix().forEach(week=>{
+    week.forEach(cell=>{
+      const st=calendarDayState(cell.date);
+      const el=document.createElement("div");
+      let cls="cal-cell";
+      if(!cell.inMonth)cls+=" other-month";
+      if(st.isToday)cls+=" today";
+      if(cell.date===selectedDate)cls+=" selected";
+      if(st.habitDone>0||st.todoTotal>0)cls+=" has-activity";
+      el.className=cls;
+      /* habit dots: show all if <=4, else show count */
+      let dotsHtml='';
+      if(st.habitTotal>0){
+        if(st.habitTotal<=4){
+          dotsHtml=st.habits.map(x=>{
+            const c=x.h.color||'#4fa8d5';
+            return `<span class="cal-dot ${x.done?'done':''}" style="--c:${c}"></span>`;
+          }).join('');
+        }else{
+          dotsHtml=`<span style="font-size:10px;color:var(--ink-soft);font-weight:700">${st.habitDone}/${st.habitTotal}</span>`;
+        }
+      }
+      /* todo badge */
+      let badgeHtml='';
+      if(st.todoTotal>0){
+        let bc='', bt=`${st.todoDone}/${st.todoTotal}`;
+        if(st.todoDone===st.todoTotal)bc=' all-done';
+        else if(st.todoOverdue>0)bc=' overdue';
+        else bc=' has-pending';
+        badgeHtml=`<span class="cal-todo-badge${bc}">${bt}</span>`;
+      }
+      el.innerHTML=`<div class="dnum">${parseKey(cell.date).getDate()}</div><div class="cal-dots">${dotsHtml}</div>${badgeHtml}`;
+      el.onclick=()=>{selectedDate=cell.date;renderCalendar();renderDayDetail(cell.date);};
+      grid.appendChild(el);
+    });
+  });
+}
+function renderDayDetail(date){
+  const box=$("#dayDetail");
+  if(!selectedDate || selectedDate!==date){box.classList.remove('show');return;}
+  const st=calendarDayState(date);
+  const d=parseKey(date);
+  const w=["日","一","二","三","四","五","六"];
+  const isPast=isBefore(date,todayKey());
+  let html=`<h3>${icon('clipboard',18)} ${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()} · 周${w[d.getDay()]}<span class="close-dd" id="ddClose">${icon('x',16)}</span></h3>`;
+  /* habits */
+  html+=`<div class="dd-section"><div class="label">习惯（${st.habitDone}/${st.habitTotal}）</div>`;
+  if(st.habitTotal===0){html+=`<div class="dd-empty">这天没有习惯记录</div>`;}
+  else{
+    st.habits.forEach(x=>{
+      const c=x.h.color||'#4fa8d5';
+      html+=`<div class="dd-habit-row"><span class="cal-dot ${x.done?'done':''}" style="--c:${c};width:14px;height:14px"></span><div class="nm">${escapeHtml(x.h.name)}</div><div class="dd-mini-check ${x.done?'done':''}" data-ddh="${x.h.id}">${x.done?icon('check',16):''}</div></div>`;
+    });
+  }
+  html+=`</div>`;
+  /* todos */
+  const todos=todosForDate(date);
+  html+=`<div class="dd-section"><div class="label">待办（${st.todoDone}/${st.todoTotal}${st.todoOverdue?' · '+icon('alert',12)+' 过期'+st.todoOverdue:''}）</div>`;
+  if(todos.length===0){html+=`<div class="dd-empty">这天没有待办</div>`;}
+  else{
+    todos.forEach(o=>{
+      html+=`<div class="dd-todo-row"><div class="dd-mini-check ${o.done?'done':''}" data-ddt="${o.id}">${o.done?icon('check',16):''}</div><div class="nm ${o.done?'done-todo':''}">${escapeHtml(o.name)}${o.time?' <span class="badge">'+icon('clock',11)+' '+o.time+'</span>':''}${repeatLabel(o)?' <span class="badge repeat">'+repeatLabel(o)+'</span>':''}</div></div>`;
+    });
+  }
+  html+=`</div>`;
+  /* quick add to this date */
+  html+=`<div class="dd-section"><div class="label">添加到这天的待办</div><div class="dd-add"><input type="text" id="ddAddInput" placeholder="安排一件事到 ${d.getMonth()+1}/${d.getDate()}" maxlength="40"><button id="ddAddBtn">添加</button></div></div>`;
+  box.innerHTML=html;
+  box.classList.add('show');
+  $("#ddClose").onclick=()=>{selectedDate=null;renderCalendar();box.classList.remove('show');};
+  $$("#dayDetail .dd-mini-check[data-ddh]").forEach(b=>b.onclick=()=>toggleHabitDate(b.dataset.ddh,date));
+  $$("#dayDetail .dd-mini-check[data-ddt]").forEach(b=>b.onclick=()=>toggleTodoDate(b.dataset.ddt,date));
+  const ddBtn=$("#ddAddBtn");
+  if(ddBtn){
+    ddBtn.onclick=()=>{
+      const v=$("#ddAddInput").value.trim();if(!v){toast("先写点什么吧～");return;}
+      data.todos.push({id:uid(),name:v,repeat:{type:'none',weekdays:[],dates:[]},date:date,time:"",done:false,doneDate:null});
+      save();renderDayDetail(date);renderCalendar();renderHeader();renderTodos();toast("已添加到这天");
+    };
+    $("#ddAddInput").addEventListener("keydown",e=>{if(e.key==="Enter")ddBtn.click();});
+  }
+}
+function toggleHabitDate(id,date){
+  const h=data.habits.find(x=>x.id===id);if(!h)return;
+  h.records=h.records||{};
+  if(h.records[date]){delete h.records[date];toast("已取消");}else{h.records[date]=true;toast("打卡成功！喵～");}
+  save();renderCalendar();renderDayDetail(date);renderHabits();renderHeader();renderStats();
+}
+function toggleTodoDate(id,date){
+  const o=data.todos.find(x=>x.id===id);if(!o)return;
+  o.done=!o.done;
+  if(o.done){o.doneDate=todayKey();toast("搞定！喵～");}else{o.doneDate=null;}
+  save();renderCalendar();renderDayDetail(date);renderTodos();renderHeader();
+}
+
+/* ---------- 渲染：习惯列表 ---------- */
+function renderHabits(){
+  const box=$("#habitList");box.innerHTML="";
+  if(data.habits.length===0){
+    box.innerHTML=`<div class="empty"><span class="e">${icon('paw',48)}</span>还没有习惯哦，先在上面添加一个吧～</div>`;return;
+  }
+  const t=todayKey();
+  data.habits.forEach(h=>{
+    const rec=h.records||{};
+    const done=!!rec[t];
+    const st=streakOf(h);
+    const card=document.createElement("div");card.className="card";
+    let week="";
+    for(let i=6;i>=0;i--){const d=addDays(t,-i);const on=rec[d];
+      week+=`<div class="dot ${on?'done':''} ${i===0?'today':''}" title="${d}">${on?icon('check',10):''}</div>`;}
+    card.innerHTML=`
+      <div class="ic-box"><div class="ic-dot" style="background:${h.color||'#4fa8d5'}"></div></div>
+      <div class="info">
+        <div class="name">${escapeHtml(h.name)}</div>
+        <div class="meta">${icon('flame',14)} 连续 <span class="streak">${st}</span> 天</div>
+        <div class="week">${week}</div>
+      </div>
+      <div class="check-btn ${done?'done':''}" data-id="${h.id}" title="今日打卡">${done?icon('check',24):''}</div>
+      <div class="del" data-del="${h.id}" title="删除">${icon('trash',18)}</div>`;
+    box.appendChild(card);
+  });
+  $$("#habitList .check-btn").forEach(b=>b.onclick=()=>toggleHabit(b.dataset.id,b));
+  $$("#habitList .del").forEach(b=>b.onclick=()=>delHabit(b.dataset.del));
+}
+function toggleHabit(id,btn){
+  const h=data.habits.find(x=>x.id===id);if(!h)return;
+  h.records=h.records||{};
+  const t=todayKey();
+  if(h.records[t]){delete h.records[t];toast("已取消今日打卡");}
+  else{h.records[t]=true;toast("打卡成功！喵～");if(btn){btn.classList.add("bump");setTimeout(()=>btn.classList.remove("bump"),500);}}
+  save();renderHabits();renderHeader();renderStats();renderCalendar();
+}
+function delHabit(id){
+  if(!confirm("确定删除这个习惯吗？打卡记录也会一起删掉。"))return;
+  data.habits=data.habits.filter(x=>x.id!==id);save();renderHabits();renderHeader();renderStats();renderCalendar();
+}
+
+/* ---------- 待办添加表单状态 ---------- */
+let todoRepeat={type:'none',weekdays:[],dates:[]};
+function syncRepeatUI(){
+  $$("#repeatSeg button").forEach(b=>b.classList.toggle('active',b.dataset.rt===todoRepeat.type));
+  $("#weekdayPick").style.display=todoRepeat.type==='weekly'?'flex':'none';
+  $("#datePick").style.display=todoRepeat.type==='custom'?'flex':'none';
+  $("#dateChips").style.display=todoRepeat.type==='custom'?'flex':'none';
+  $$("#weekdayPick button").forEach(b=>b.classList.toggle('active',todoRepeat.weekdays.includes(Number(b.dataset.wd))));
+  const chips=$("#dateChips");chips.innerHTML='';
+  (todoRepeat.dates||[]).slice().sort().forEach(d=>{
+    const c=document.createElement('span');c.className='date-chip';
+    c.innerHTML=`${d} <span class="x" data-rm="${d}">${icon('x',12)}</span>`;
+    chips.appendChild(c);
+  });
+  $$("#dateChips .x").forEach(x=>x.onclick=()=>{
+    todoRepeat.dates=todoRepeat.dates.filter(d=>d!==x.dataset.rm);syncRepeatUI();
+  });
+}
+$$("#repeatSeg button").forEach(b=>b.onclick=()=>{
+  todoRepeat.type=b.dataset.rt;
+  if(todoRepeat.type!=='weekly')todoRepeat.weekdays=[];
+  if(todoRepeat.type!=='custom')todoRepeat.dates=[];
+  syncRepeatUI();
+});
+$$("#weekdayPick button").forEach(b=>b.onclick=()=>{
+  const wd=Number(b.dataset.wd);
+  if(todoRepeat.weekdays.includes(wd))todoRepeat.weekdays=todoRepeat.weekdays.filter(x=>x!==wd);
+  else todoRepeat.weekdays.push(wd);
+  syncRepeatUI();
+});
+$("#addCustomDate").onclick=()=>{
+  const v=$("#customDate").value;if(!v){toast("先选个日期～");return;}
+  if(todoRepeat.dates.includes(v)){toast("这个日期已经选过了～");return;}
+  todoRepeat.dates.push(v);$("#customDate").value="";syncRepeatUI();
+};
+
+/* ---------- 渲染：待办列表 ---------- */
+let todoShowAll=false;
+function renderTodos(){
+  const box=$("#todoList");box.innerHTML="";
+  const t=todayKey();
+  let list=todoShowAll?data.todos:todosForDate(t);
+  $("#todoScopeLabel").textContent=todoShowAll?`全部待办（${data.todos.length}）`:`今日待办（${list.length}）`;
+  $("#todoScopeToggle").textContent=todoShowAll?'只看今日':'显示全部';
+  if(list.length===0){
+    box.innerHTML=`<div class="empty"><span class="e">${icon('note',48)}</span>${todoShowAll?'暂无待办':'今天没有待办，安排一件事吧～'}</div>`;return;
+  }
+  list.forEach(o=>{
+    const card=document.createElement("div");card.className="card todo-card";
+    const rl=repeatLabel(o);
+    card.innerHTML=`
+      <div class="check-btn ${o.done?'done':''}" data-todo="${o.id}" title="完成">${o.done?icon('check',24):''}</div>
+      <div class="info">
+        <div class="name ${o.done?'done-todo':''}">${escapeHtml(o.name)}${rl?'<span class="badge repeat">'+rl+'</span>':''}${o.time?'<span class="badge">'+icon('clock',11)+' '+o.time+'</span>':''}</div>
+        <div class="meta">${o.done?'已完成':(todoShowAll?(o.repeat&&o.repeat.type!=='none'?rl:'目标 '+o.date):'待完成')}${o.time?' · 计划 '+o.time:''}</div>
+      </div>
+      <div class="del" data-deltodo="${o.id}" title="删除">${icon('trash',18)}</div>`;
+    box.appendChild(card);
+  });
+  $$("#todoList .check-btn").forEach(b=>b.onclick=()=>toggleTodo(b.dataset.todo));
+  $$("#todoList .del").forEach(b=>b.onclick=()=>delTodo(b.dataset.deltodo));
+}
+function toggleTodo(id){
+  const o=data.todos.find(x=>x.id===id);if(!o)return;
+  o.done=!o.done;
+  if(o.done){o.doneDate=todayKey();toast("搞定一项！喵～");}else{o.doneDate=null;}
+  save();renderTodos();renderHeader();renderCalendar();
+}
+function delTodo(id){
+  if(!confirm("删除这条待办？"))return;
+  data.todos=data.todos.filter(x=>x.id!==id);save();renderTodos();renderHeader();renderCalendar();
+}
+
+/* ---------- 渲染：统计 ---------- */
+function renderStats(){
+  let total=0,best=0;
+  const t=todayKey();
+  data.habits.forEach(h=>{
+    const rec=h.records||{};
+    total+=Object.keys(rec).length;
+    const s=streakOf(h);if(s>best)best=s;
+  });
+  $("#stTotal").textContent=total;
+  $("#stBest").textContent=best;
+  const rate=data.habits.length?Math.round(data.habits.filter(h=>(h.records||{})[t]).length/data.habits.length*100):0;
+  $("#stRate").textContent=rate+"%";
+  const grid=$("#heatGrid");grid.innerHTML="";
+  const counts={};
+  data.habits.forEach(h=>{const rec=h.records||{};for(const k in rec)counts[k]=(counts[k]||0)+1;});
+  for(let i=97;i>=0;i--){
+    const d=addDays(t,-i);const c=counts[d]||0;
+    let lvl="";if(c>=1)lvl="lvl1";if(c>=2)lvl="lvl2";if(c>=4)lvl="lvl3";if(c>=7)lvl="lvl4";
+    const cell=document.createElement("div");cell.className="cell "+lvl;cell.title=`${d}：${c} 次打卡`;grid.appendChild(cell);
+  }
+  const sl=$("#streakList");sl.innerHTML="";
+  if(data.habits.length===0){sl.innerHTML=`<div class="empty" style="padding:20px">还没有习惯数据</div>`;}
+  data.habits.slice().sort((a,b)=>streakOf(b)-streakOf(a)).forEach(h=>{
+    const row=document.createElement("div");row.className="set-row";
+    row.innerHTML=`<div style="display:flex;align-items:center;gap:8px;"><span class="ic-dot" style="width:14px;height:14px;border-radius:50%;background:${h.color||'#4fa8d5'};display:inline-block;"></span>${escapeHtml(h.name)}</div><div style="display:flex;align-items:center;gap:4px;color:var(--sky-deep);font-weight:800;">${icon('flame',14)} ${streakOf(h)} 天</div>`;
+    sl.appendChild(row);
+  });
+}
+
+/* ---------- 提醒 ---------- */
+function showReminder(){
+  if(!data.settings.banner)return;
+  const pend=todosForDate(todayKey()).filter(o=>!o.done);
+  if(pend.length===0)return;
+  $("#reminderBody").innerHTML=`今天还有 <b>${pend.length}</b> 件事没做完哦，和 <b>${data.settings.catName||'咪咪'}</b> 一起加油：<br>`+
+    pend.map(o=>'· '+(o.time?o.time+' ':'')+escapeHtml(o.name)).join('<br>');
+  $("#reminder").classList.add("show");
+}
+function desktopNotify(){
+  if(!data.settings.notify)return;
+  if(!("Notification"in window))return;
+  if(Notification.permission==="granted"){
+    const pend=todosForDate(todayKey()).filter(o=>!o.done);
+    if(pend.length)new Notification("喵喵自律提醒",{body:`今天还有 ${pend.length} 件待办没完成，加油！`});
+  }
+}
+
+/* ---------- 猫咪 SVG（可爱版） ---------- */
+function catSvg(mood){
+  return `<svg viewBox="0 0 100 100">
+    <ellipse cx="50" cy="90" rx="26" ry="5" fill="#000" opacity=".05"/>
+    <path d="M74 68 Q86 58 82 44" stroke="#cfeaf7" stroke-width="7" fill="none" stroke-linecap="round"/>
+    <ellipse cx="50" cy="74" rx="22" ry="13" fill="#eaf4fb" stroke="#cfeaf7" stroke-width="1.5"/>
+    <ellipse cx="42" cy="84" rx="4" ry="2.5" fill="#cfeaf7"/>
+    <ellipse cx="58" cy="84" rx="4" ry="2.5" fill="#cfeaf7"/>
+    <path d="M26 40 Q22 16 38 26 L42 42 Z" fill="#eaf4fb" stroke="#cfeaf7" stroke-width="1.5"/>
+    <path d="M74 40 Q78 16 62 26 L58 42 Z" fill="#eaf4fb" stroke="#cfeaf7" stroke-width="1.5"/>
+    <path d="M30 36 Q28 22 36 28 L37 38 Z" fill="#ffc4d4"/>
+    <path d="M70 36 Q72 22 64 28 L63 38 Z" fill="#ffc4d4"/>
+    <circle cx="50" cy="52" r="27" fill="#eaf4fb" stroke="#cfeaf7" stroke-width="1.5"/>
+    <ellipse cx="39" cy="50" rx="5" ry="6" fill="#3d5a73"/>
+    <ellipse cx="61" cy="50" rx="5" ry="6" fill="#3d5a73"/>
+    <circle cx="40.5" cy="47.5" r="1.8" fill="#fff"/>
+    <circle cx="62.5" cy="47.5" r="1.8" fill="#fff"/>
+    <ellipse cx="33" cy="58" rx="5" ry="3.5" fill="#ffb3c1" opacity=".55"/>
+    <ellipse cx="67" cy="58" rx="5" ry="3.5" fill="#ffb3c1" opacity=".55"/>
+    <path d="M48 56 L50 59 L52 56 Z" fill="#ff9eb5"/>
+    ${mood==='happy'
+      ? '<path d="M43 60 Q50 68 57 60" stroke="#3d5a73" stroke-width="2.5" fill="none" stroke-linecap="round"/>'
+      : '<path d="M46 61 Q50 64 54 61" stroke="#3d5a73" stroke-width="2.5" fill="none" stroke-linecap="round"/>'}
+    <line x1="22" y1="55" x2="33" y2="56" stroke="#bcd6e8" stroke-width="1" stroke-linecap="round"/>
+    <line x1="22" y1="60" x2="33" y2="59" stroke="#bcd6e8" stroke-width="1" stroke-linecap="round"/>
+    <line x1="78" y1="55" x2="67" y2="56" stroke="#bcd6e8" stroke-width="1" stroke-linecap="round"/>
+    <line x1="78" y1="60" x2="67" y2="59" stroke="#bcd6e8" stroke-width="1" stroke-linecap="round"/>
+    <circle cx="78" cy="28" r="2" fill="#7ec8e3" opacity=".5"/>
+    <circle cx="82" cy="33" r="1.3" fill="#7ec8e3" opacity=".35"/>
+  </svg>`;
+}
+
+/* ---------- 事件绑定 ---------- */
+$("#habitAdd").onclick=()=>{
+  const v=$("#habitInput").value.trim();if(!v){toast("先写点什么吧～");return;}
+  data.habits.push({id:uid(),name:v,color:HABIT_COLORS[data.habits.length%HABIT_COLORS.length],records:{}});
+  $("#habitInput").value="";save();renderHabits();renderHeader();renderStats();renderCalendar();toast("习惯已添加");
+};
+$("#todoAdd").onclick=()=>{
+  const v=$("#todoInput").value.trim();if(!v){toast("先写点什么吧～");return;}
+  if(todoRepeat.type==='weekly' && todoRepeat.weekdays.length===0){toast("选一下每周几哦～");return;}
+  if(todoRepeat.type==='custom' && todoRepeat.dates.length===0){toast("选一下日期哦～");return;}
+  const rep={type:todoRepeat.type,weekdays:todoRepeat.weekdays.slice(),dates:todoRepeat.dates.slice()};
+  data.todos.push({id:uid(),name:v,repeat:rep,date:todayKey(),time:$("#todoTime").value||"",done:false,doneDate:null});
+  $("#todoInput").value="";$("#todoTime").value="";
+  todoRepeat={type:'none',weekdays:[],dates:[]};syncRepeatUI();
+  save();renderTodos();renderHeader();renderCalendar();toast("待办已添加");
+};
+$$(".tab").forEach(t=>t.onclick=()=>{
+  $$(".tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");
+  $$(".panel").forEach(p=>p.classList.remove("active"));
+  $("#panel-"+t.dataset.tab).classList.add("active");
+  if(t.dataset.tab==="calendar")renderCalendar();
+  if(t.dataset.tab==="stats")renderStats();
+});
+$("#reminderClose").onclick=()=>$("#reminder").classList.remove("show");
+$("#calPrev").onclick=()=>{let m=data.calView.m-1;if(m<0){m=11;data.calView.y--;}data.calView.m=m;save();renderCalendar();};
+$("#calNext").onclick=()=>{let m=data.calView.m+1;if(m>11){m=0;data.calView.y++;}data.calView.m=m;save();renderCalendar();};
+$("#calToday").onclick=()=>{const n=new Date();data.calView.y=n.getFullYear();data.calView.m=n.getMonth();selectedDate=todayKey();save();renderCalendar();renderDayDetail(todayKey());};
+$("#todoScopeToggle").onclick=()=>{todoShowAll=!todoShowAll;renderTodos();};
+
+/* settings */
+$("#setNotify").onchange=e=>{
+  data.settings.notify=e.target.checked;save();
+  if(e.target.checked && "Notification"in window && Notification.permission==="default"){
+    Notification.requestPermission();
+  }
+};
+$("#setBanner").onchange=e=>{data.settings.banner=e.target.checked;save();};
+$("#setCatName").oninput=e=>{data.settings.catName=e.target.value.trim()||"咪咪";save();renderHeader();};
+$("#petCat").onclick=()=>{
+  const m=$("#mascot");m.innerHTML=catSvg('happy');
+  setTimeout(()=>m.innerHTML=catSvg('normal'),700);
+  toast("喵～ 被你撸得很开心");
+};
+$("#mascot").onclick=()=>{
+  const m=$("#mascot");m.innerHTML=catSvg('happy');
+  setTimeout(()=>m.innerHTML=catSvg('normal'),700);
+  toast("喵呜～");
+};
+$("#resetAll").onclick=()=>{
+  if(!confirm("确定清空所有习惯和待办数据吗？此操作不可恢复！"))return;
+  const s=data.settings;
+  data={habits:[],todos:[],settings:s,lastOpen:todayKey(),calView:{y:new Date().getFullYear(),m:new Date().getMonth()}};
+  todoRepeat={type:'none',weekdays:[],dates:[]};syncRepeatUI();
+  save();renderAll();toast("已清空全部数据");
+};
+$("#exportData").onclick=()=>{
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="喵喵自律备份_"+todayKey()+".json";a.click();
+  toast("备份已下载");
+};
+
+/* 回车快捷添加 */
+$("#habitInput").addEventListener("keydown",e=>{if(e.key==="Enter")$("#habitAdd").click();});
+$("#todoInput").addEventListener("keydown",e=>{if(e.key==="Enter")$("#todoAdd").click();});
+
+/* ---------- 小工具 ---------- */
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+let toastTimer;
+function toast(msg){
+  const t=$("#toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),1800);
+}
+
+/* ---------- 启动 ---------- */
+function renderAll(){renderHeader();renderCalendar();renderHabits();renderTodos();renderStats();}
+function init(){
+  dailyResetIfNeeded();
+  syncRepeatUI();
+  $("#mascot").innerHTML=catSvg('normal');
+  $("#setNotify").checked=data.settings.notify;
+  $("#setBanner").checked=data.settings.banner;
+  $("#setCatName").value=data.settings.catName||"";
+  renderAll();
+  showReminder();
+  if(data.settings.notify && "Notification"in window && Notification.permission==="granted"){
+    setTimeout(desktopNotify,800);
+  }
+}
+init();
+</script>
+</body>
+</html>

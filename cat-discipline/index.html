@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐱 喵喵自律 · 猫咪主题习惯打卡</title>
+<style>
+  :root{
+    --bg:#fff6ef;
+    --bg2:#ffeef4;
+    --card:#ffffff;
+    --ink:#5b4a44;
+    --ink-soft:#9b8a82;
+    --pink:#ff9eb5;
+    --pink-deep:#ff7a9c;
+    --cream:#ffd9b3;
+    --mint:#a8e6cf;
+    --mint-deep:#6fceaa;
+    --blue:#a3d5ff;
+    --line:#ffe2d2;
+    --shadow:0 8px 24px rgba(255,138,160,.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+    background:linear-gradient(160deg,var(--bg) 0%,var(--bg2) 100%);
+    color:var(--ink);
+    min-height:100vh;
+    padding:24px 16px 60px;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+  /* Header */
+  header{
+    display:flex;align-items:center;gap:14px;
+    background:var(--card);border-radius:24px;padding:18px 22px;
+    box-shadow:var(--shadow);margin-bottom:18px;
+  }
+  .mascot{width:64px;height:64px;flex:0 0 auto;}
+  .mascot svg{width:100%;height:100%;}
+  .title h1{font-size:22px;font-weight:800;letter-spacing:.5px;}
+  .title p{font-size:13px;color:var(--ink-soft);margin-top:2px;}
+  .date-pill{
+    margin-left:auto;background:var(--bg2);color:var(--pink-deep);
+    font-size:13px;font-weight:700;padding:8px 14px;border-radius:999px;
+  }
+  /* Dashboard */
+  .dash{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+  .stat-card{
+    background:var(--card);border-radius:20px;padding:16px 18px;
+    box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;
+  }
+  .stat-card .big{font-size:30px;font-weight:800;color:var(--pink-deep);line-height:1;}
+  .stat-card .lbl{font-size:13px;color:var(--ink-soft);margin-top:4px;}
+  .stat-card .emoji{font-size:30px;}
+  /* Reminder banner */
+  .reminder{
+    background:linear-gradient(120deg,#fff3d6,#ffe0ec);
+    border:1px dashed var(--pink);border-radius:18px;padding:14px 18px;
+    margin-bottom:18px;display:none;align-items:flex-start;gap:12px;
+    box-shadow:var(--shadow);
+  }
+  .reminder.show{display:flex;animation:pop .4s ease;}
+  .reminder .body{font-size:14px;line-height:1.6;}
+  .reminder b{color:var(--pink-deep);}
+  .reminder .close{cursor:pointer;color:var(--ink-soft);font-size:18px;margin-left:auto;}
+  /* Tabs */
+  .tabs{display:flex;gap:8px;margin-bottom:16px;background:var(--card);
+    padding:6px;border-radius:18px;box-shadow:var(--shadow);}
+  .tab{flex:1;text-align:center;padding:10px;border-radius:13px;cursor:pointer;
+    font-weight:700;font-size:14px;color:var(--ink-soft);transition:.2s;
+    border:none;background:transparent;}
+  .tab.active{background:var(--pink);color:#fff;box-shadow:0 4px 12px rgba(255,122,156,.4);}
+  /* Panels */
+  .panel{display:none;}
+  .panel.active{display:block;animation:fade .3s ease;}
+  /* Add row */
+  .add-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;}
+  .add-row input[type=text]{
+    flex:1;min-width:160px;padding:13px 16px;border:2px solid var(--line);
+    border-radius:14px;font-size:15px;background:#fffdfb;color:var(--ink);outline:none;
+  }
+  .add-row input[type=text]:focus{border-color:var(--pink);}
+  .add-row input[type=time]{padding:13px;border:2px solid var(--line);border-radius:14px;background:#fffdfb;color:var(--ink);}
+  .btn{
+    border:none;cursor:pointer;font-weight:800;font-size:15px;
+    padding:13px 20px;border-radius:14px;background:var(--pink);color:#fff;
+    box-shadow:0 4px 12px rgba(255,122,156,.4);transition:.15s;white-space:nowrap;
+  }
+  .btn:hover{transform:translateY(-2px);}
+  .btn:active{transform:translateY(0);}
+  .btn.ghost{background:#fff;color:var(--pink-deep);border:2px solid var(--line);box-shadow:none;}
+  .btn.mint{background:var(--mint-deep);box-shadow:0 4px 12px rgba(111,206,170,.4);}
+  .chk-repeat{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-soft);
+    background:#fffdfb;border:2px solid var(--line);border-radius:14px;padding:0 14px;cursor:pointer;}
+  /* Cards */
+  .card{
+    background:var(--card);border-radius:18px;padding:16px 18px;margin-bottom:12px;
+    box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;
+  }
+  .card .ic{font-size:30px;width:46px;height:46px;flex:0 0 auto;display:flex;
+    align-items:center;justify-content:center;background:var(--bg2);border-radius:14px;}
+  .card .info{flex:1;min-width:0;}
+  .card .name{font-weight:700;font-size:16px;}
+  .card .meta{font-size:12.5px;color:var(--ink-soft);margin-top:3px;}
+  .streak{color:var(--pink-deep);font-weight:800;}
+  /* week dots */
+  .week{display:flex;gap:5px;margin-top:7px;}
+  .dot{width:18px;height:18px;border-radius:6px;background:var(--line);font-size:10px;
+    display:flex;align-items:center;justify-content:center;color:#fff;}
+  .dot.done{background:var(--mint-deep);}
+  .dot.today{outline:2px solid var(--pink);outline-offset:1px;}
+  /* check button */
+  .check-btn{
+    width:50px;height:50px;border-radius:16px;border:2px solid var(--line);
+    background:#fffdfb;cursor:pointer;font-size:24px;display:flex;align-items:center;
+    justify-content:center;transition:.15s;flex:0 0 auto;
+  }
+  .check-btn:hover{border-color:var(--mint-deep);}
+  .check-btn.done{background:var(--mint-deep);border-color:var(--mint-deep);}
+  .check-btn.bump{animation:bump .5s ease;}
+  /* todo */
+  .todo-card .name.done-todo{text-decoration:line-through;color:var(--ink-soft);}
+  .badge{font-size:11px;background:var(--bg2);color:var(--pink-deep);padding:2px 8px;border-radius:999px;margin-left:6px;font-weight:700;}
+  .del{cursor:pointer;color:var(--ink-soft);font-size:20px;margin-left:6px;flex:0 0 auto;
+    width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+  .del:hover{background:#ffe9ef;color:var(--pink-deep);}
+  .empty{text-align:center;color:var(--ink-soft);padding:40px 0;font-size:14px;}
+  .empty .e{font-size:46px;display:block;margin-bottom:10px;}
+  /* stats */
+  .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+  .stat-box{background:var(--card);border-radius:18px;padding:18px;text-align:center;box-shadow:var(--shadow);}
+  .stat-box .n{font-size:28px;font-weight:800;color:var(--pink-deep);}
+  .stat-box .t{font-size:12.5px;color:var(--ink-soft);margin-top:4px;}
+  .heat{background:var(--card);border-radius:18px;padding:18px;box-shadow:var(--shadow);margin-bottom:12px;}
+  .heat h3{font-size:15px;margin-bottom:12px;}
+  .heat .grid{display:grid;grid-template-columns:repeat(14,1fr);gap:5px;}
+  .heat .cell{aspect-ratio:1;border-radius:5px;background:var(--line);}
+  .heat .cell.lvl1{background:#ffe2cd;}.heat .cell.lvl2{background:#ffc6a8;}.heat .cell.lvl3{background:var(--pink);}.heat .cell.lvl4{background:var(--pink-deep);}
+  /* settings */
+  .set-card{background:var(--card);border-radius:18px;padding:18px 20px;box-shadow:var(--shadow);margin-bottom:12px;}
+  .set-card h3{font-size:15px;margin-bottom:10px;}
+  .set-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line);}
+  .set-row:last-child{border-bottom:none;}
+  .set-row .desc{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+  .switch{position:relative;width:50px;height:28px;flex:0 0 auto;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;inset:0;background:var(--line);border-radius:999px;transition:.2s;cursor:pointer;}
+  .slider:before{content:"";position:absolute;height:22px;width:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;}
+  .switch input:checked + .slider{background:var(--mint-deep);}
+  .switch input:checked + .slider:before{transform:translateX(22px);}
+  .set-row input[type=text]{padding:9px 12px;border:2px solid var(--line);border-radius:10px;font-size:14px;background:#fffdfb;color:var(--ink);width:140px;outline:none;}
+  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:12px 22px;border-radius:14px;font-size:14px;
+    opacity:0;pointer-events:none;transition:.3s;z-index:99;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  footer{text-align:center;color:var(--ink-soft);font-size:12px;margin-top:24px;}
+  @keyframes bump{0%{transform:scale(1);}40%{transform:scale(1.25) rotate(-8deg);}100%{transform:scale(1);}}
+  @keyframes pop{0%{transform:scale(.95);opacity:0;}100%{transform:scale(1);opacity:1;}}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  @media(max-width:560px){.dash{grid-template-columns:1fr;}.stat-grid{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="mascot" id="mascot"></div>
+    <div class="title">
+      <h1>🐱 喵喵自律</h1>
+      <p id="catNameLine">和 <span id="catName">咪咪</span> 一起，每天进步一点点</p>
+    </div>
+    <div class="date-pill" id="datePill"></div>
+  </header>
+
+  <div class="dash">
+    <div class="stat-card">
+      <div class="emoji">✅</div>
+      <div><div class="big" id="habitToday">0/0</div><div class="lbl">今日习惯打卡</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="emoji">📝</div>
+      <div><div class="big" id="todoPending">0</div><div class="lbl">今日待办未完成</div></div>
+    </div>
+  </div>
+
+  <div class="reminder" id="reminder">
+    <div style="font-size:26px">🔔</div>
+    <div class="body" id="reminderBody"></div>
+    <div class="close" id="reminderClose">✕</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="habits">🐾 习惯打卡</button>
+    <button class="tab" data-tab="todos">📝 待办事项</button>
+    <button class="tab" data-tab="stats">📊 统计</button>
+    <button class="tab" data-tab="settings">⚙️ 设置</button>
+  </div>
+
+  <!-- HABITS -->
+  <section class="panel active" id="panel-habits">
+    <div class="add-row">
+      <input type="text" id="habitInput" placeholder="添加一个想坚持的习惯，比如「喝水 8 杯」" maxlength="40">
+      <button class="btn" id="habitAdd">＋ 添加习惯</button>
+    </div>
+    <div id="habitList"></div>
+  </section>
+
+  <!-- TODOS -->
+  <section class="panel" id="panel-todos">
+    <div class="add-row">
+      <input type="text" id="todoInput" placeholder="添加一个待办，比如「写周报」" maxlength="40">
+      <label class="chk-repeat"><input type="checkbox" id="todoRepeat"> 🔁 每天</label>
+      <input type="time" id="todoTime" title="提醒时间（应用打开时若未做完会提醒）">
+      <button class="btn mint" id="todoAdd">＋ 添加待办</button>
+    </div>
+    <div id="todoList"></div>
+  </section>
+
+  <!-- STATS -->
+  <section class="panel" id="panel-stats">
+    <div class="stat-grid">
+      <div class="stat-box"><div class="n" id="stTotal">0</div><div class="t">累计打卡次数</div></div>
+      <div class="stat-box"><div class="n" id="stBest">0</div><div class="t">最长连续天数</div></div>
+      <div class="stat-box"><div class="n" id="stRate">0%</div><div class="t">今日习惯完成率</div></div>
+    </div>
+    <div class="heat">
+      <h3>🗓️ 近 14 周打卡热力图（所有习惯合计）</h3>
+      <div class="grid" id="heatGrid"></div>
+    </div>
+    <div class="heat">
+      <h3>🏆 各习惯最长连续</h3>
+      <div id="streakList"></div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="panel" id="panel-settings">
+    <div class="set-card">
+      <h3>🔔 提醒设置</h3>
+      <div class="set-row">
+        <div><div>浏览器桌面通知</div><div class="desc">打开应用且有待办未完成时弹出提醒</div></div>
+        <label class="switch"><input type="checkbox" id="setNotify"><span class="slider"></span></label>
+      </div>
+      <div class="set-row">
+        <div><div>开启每日提醒横幅</div><div class="desc">进入应用时显示今日未完成清单</div></div>
+        <label class="switch"><input type="checkbox" id="setBanner" checked><span class="slider"></span></label>
+      </div>
+    </div>
+    <div class="set-card">
+      <h3>🐱 猫咪伙伴</h3>
+      <div class="set-row">
+        <div><div>给猫咪起个名字</div><div class="desc">会显示在主页标题下方</div></div>
+        <input type="text" id="setCatName" maxlength="8" placeholder="咪咪">
+      </div>
+      <div class="set-row">
+        <div><div>心情（点击撸猫）</div><div class="desc">每次点击猫咪会有小反应～</div></div>
+        <button class="btn ghost" id="petCat">🐾 撸一下</button>
+      </div>
+    </div>
+    <div class="set-card">
+      <h3>🧹 数据管理</h3>
+      <div class="set-row">
+        <div><div>清空所有数据</div><div class="desc">习惯、待办与记录将全部删除，不可恢复</div></div>
+        <button class="btn ghost" id="resetAll" style="color:#e06a6a">清空</button>
+      </div>
+      <div class="set-row">
+        <div><div>导出备份（JSON）</div><div class="desc">下载一份数据备份到电脑</div></div>
+        <button class="btn ghost" id="exportData">下载</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>数据仅保存在你的这台电脑浏览器中 · 关掉网页不会丢失 🐾</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- 工具函数 ---------- */
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const todayStr = () => new Date().toISOString().slice(0,10);
+function fmtDate(d){const w=["日","一","二","三","四","五","六"];return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 · 周${w[d.getDay()]}`;}
+function daysAgo(n){const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10);}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+
+/* ---------- 数据存储 ---------- */
+const KEY="cat_discipline_v1";
+let data = load();
+function load(){
+  try{const r=localStorage.getItem(KEY);if(r)return JSON.parse(r);}catch(e){}
+  return {habits:[],todos:[],settings:{notify:false,banner:true,catName:"咪咪"},lastOpen:todayStr()};
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(data));}
+
+/* ---------- 跨天重置每日待办 ---------- */
+function dailyResetIfNeeded(){
+  const t=todayStr();
+  if(data.lastOpen!==t){
+    data.todos.forEach(o=>{
+      if(o.repeat && o.done){o.done=false;o.doneDate=null;}
+    });
+    data.lastOpen=t;
+    save();
+  }
+}
+
+/* ---------- 连击计算 ---------- */
+function streakOf(habit){
+  let s=0;const rec=habit.records||{};
+  for(let i=0;;i++){
+    const d=daysAgo(i);
+    if(rec[d]) s++; else break;
+  }
+  return s;
+}
+
+/* ---------- 渲染：顶部与仪表盘 ---------- */
+function renderHeader(){
+  $("#datePill").textContent=fmtDate(new Date());
+  $("#catName").textContent=data.settings.catName||"咪咪";
+  $("#catNameLine").firstChild.textContent="和 ";
+  const done=data.habits.filter(h=>(h.records||{})[todayStr()]).length;
+  $("#habitToday").textContent=`${done}/${data.habits.length}`;
+  const pend=data.todos.filter(o=>!o.done).length;
+  $("#todoPending").textContent=pend;
+}
+
+/* ---------- 渲染：习惯列表 ---------- */
+function renderHabits(){
+  const box=$("#habitList");box.innerHTML="";
+  if(data.habits.length===0){
+    box.innerHTML=`<div class="empty"><span class="e">🐱</span>还没有习惯哦，先在上面添加一个吧～</div>`;return;
+  }
+  data.habits.forEach(h=>{
+    const rec=h.records||{};
+    const done=!!rec[todayStr()];
+    const st=streakOf(h);
+    const card=document.createElement("div");card.className="card";
+    let week="";
+    for(let i=6;i>=0;i--){const d=daysAgo(i);const on=rec[d];
+      week+=`<div class="dot ${on?'done':''} ${i===0?'today':''}" title="${d}">${on?'✓':''}</div>`;}
+    card.innerHTML=`
+      <div class="ic">${h.icon||'🐾'}</div>
+      <div class="info">
+        <div class="name">${escapeHtml(h.name)}</div>
+        <div class="meta">🔥 连续 <span class="streak">${st}</span> 天</div>
+        <div class="week">${week}</div>
+      </div>
+      <div class="check-btn ${done?'done':''}" data-id="${h.id}" title="今日打卡">${done?'✓':''}</div>
+      <div class="del" data-del="${h.id}" title="删除">🗑</div>`;
+    box.appendChild(card);
+  });
+  $$("#habitList .check-btn").forEach(b=>b.onclick=()=>toggleHabit(b.dataset.id,b));
+  $$("#habitList .del").forEach(b=>b.onclick=()=>delHabit(b.dataset.del));
+}
+
+function toggleHabit(id,btn){
+  const h=data.habits.find(x=>x.id===id);if(!h)return;
+  h.records=h.records||{};
+  const t=todayStr();
+  if(h.records[t]){delete h.records[t];toast("已取消今日打卡 🐾");}
+  else{h.records[t]=true;toast("打卡成功！喵～ 🎉");if(btn){btn.classList.add("bump");setTimeout(()=>btn.classList.remove("bump"),500);}}
+  save();renderHabits();renderHeader();renderStats();
+}
+function delHabit(id){
+  if(!confirm("确定删除这个习惯吗？打卡记录也会一起删掉。"))return;
+  data.habits=data.habits.filter(x=>x.id!==id);save();renderHabits();renderHeader();renderStats();
+}
+
+/* ---------- 渲染：待办列表 ---------- */
+function renderTodos(){
+  const box=$("#todoList");box.innerHTML="";
+  if(data.todos.length===0){
+    box.innerHTML=`<div class="empty"><span class="e">📝</span>暂无待办，添加一件今天想做的事吧～</div>`;return;
+  }
+  data.todos.forEach(o=>{
+    const card=document.createElement("div");card.className="card todo-card";
+    card.innerHTML=`
+      <div class="check-btn ${o.done?'done':''}" data-todo="${o.id}" title="完成">${o.done?'✓':''}</div>
+      <div class="info">
+        <div class="name ${o.done?'done-todo':''}">${escapeHtml(o.name)}${o.repeat?'<span class="badge">每天</span>':''}${o.time?'<span class="badge">⏰ '+o.time+'</span>':''}</div>
+        <div class="meta">${o.done?'已完成 🎉':'待完成'+(o.time?' · 计划 '+o.time:'')}</div>
+      </div>
+      <div class="del" data-deltodo="${o.id}" title="删除">🗑</div>`;
+    box.appendChild(card);
+  });
+  $$("#todoList .check-btn").forEach(b=>b.onclick=()=>toggleTodo(b.dataset.todo));
+  $$("#todoList .del").forEach(b=>b.onclick=()=>delTodo(b.dataset.deltodo));
+}
+function toggleTodo(id){
+  const o=data.todos.find(x=>x.id===id);if(!o)return;
+  o.done=!o.done;if(o.done){o.doneDate=todayStr();toast("搞定一项！喵 🐾");}else{o.doneDate=null;}
+  save();renderTodos();renderHeader();
+}
+function delTodo(id){
+  if(!confirm("删除这条待办？"))return;
+  data.todos=data.todos.filter(x=>x.id!==id);save();renderTodos();renderHeader();
+}
+
+/* ---------- 渲染：统计 ---------- */
+function renderStats(){
+  let total=0,best=0;
+  data.habits.forEach(h=>{
+    const rec=h.records||{};
+    total+=Object.keys(rec).length;
+    const s=streakOf(h);if(s>best)best=s;
+  });
+  $("#stTotal").textContent=total;
+  $("#stBest").textContent=best;
+  const rate=data.habits.length?Math.round(data.habits.filter(h=>(h.records||{})[todayStr()]).length/data.habits.length*100):0;
+  $("#stRate").textContent=rate+"%";
+  // heatmap 14 weeks = 98 days
+  const grid=$("#heatGrid");grid.innerHTML="";
+  const counts={};
+  data.habits.forEach(h=>{const rec=h.records||{};for(const k in rec)counts[k]=(counts[k]||0)+1;});
+  for(let i=97;i>=0;i--){
+    const d=daysAgo(i);const c=counts[d]||0;
+    let lvl="";if(c>=1)lvl="lvl1";if(c>=2)lvl="lvl2";if(c>=4)lvl="lvl3";if(c>=7)lvl="lvl4";
+    const cell=document.createElement("div");cell.className="cell "+lvl;cell.title=`${d}：${c} 次打卡`;grid.appendChild(cell);
+  }
+  // streak list
+  const sl=$("#streakList");sl.innerHTML="";
+  if(data.habits.length===0){sl.innerHTML=`<div class="empty" style="padding:20px">还没有习惯数据</div>`;}
+  data.habits.slice().sort((a,b)=>streakOf(b)-streakOf(a)).forEach(h=>{
+    const row=document.createElement("div");row.className="set-row";
+    row.innerHTML=`<div><div>${h.icon||'🐾'} ${escapeHtml(h.name)}</div></div><div class="streak">🔥 ${streakOf(h)} 天</div>`;
+    sl.appendChild(row);
+  });
+}
+
+/* ---------- 提醒 ---------- */
+function showReminder(){
+  if(!data.settings.banner)return;
+  const pend=data.todos.filter(o=>!o.done);
+  if(pend.length===0)return;
+  $("#reminderBody").innerHTML=`今天还有 <b>${pend.length}</b> 件事没做完哦，和 <b>${data.settings.catName||'咪咪'}</b> 一起加油：<br>`+
+    pend.map(o=>'· '+(o.time?o.time+' ':'')+escapeHtml(o.name)).join('<br>');
+  $("#reminder").classList.add("show");
+}
+function desktopNotify(){
+  if(!data.settings.notify)return;
+  if(!("Notification"in window))return;
+  if(Notification.permission==="granted"){
+    const pend=data.todos.filter(o=>!o.done);
+    if(pend.length)new Notification("🐱 喵喵自律提醒",{body:`今天还有 ${pend.length} 件待办没完成，加油！`});
+  }
+}
+
+/* ---------- 猫咪 SVG ---------- */
+function catSvg(mood){
+  return `<svg viewBox="0 0 100 100">
+    <ellipse cx="50" cy="86" rx="30" ry="6" fill="#000" opacity=".06"/>
+    <path d="M22 40 L18 18 L38 32 Z" fill="#ffd9b3"/>
+    <path d="M78 40 L82 18 L62 32 Z" fill="#ffd9b3"/>
+    <path d="M27 36 L24 22 L37 31 Z" fill="#ff9eb5"/>
+    <path d="M73 36 L76 22 L63 31 Z" fill="#ff9eb5"/>
+    <circle cx="50" cy="56" r="30" fill="#ffd9b3"/>
+    <circle cx="40" cy="52" r="4.5" fill="#5b4a44"/>
+    <circle cx="60" cy="52" r="4.5" fill="#5b4a44"/>
+    ${mood==='happy'?'<path d="M42 64 Q50 72 58 64" stroke="#5b4a44" stroke-width="3" fill="none" stroke-linecap="round"/>':
+      '<path d="M43 65 Q50 60 57 65" stroke="#5b4a44" stroke-width="3" fill="none" stroke-linecap="round"/>'}
+    <circle cx="34" cy="60" r="4" fill="#ff9eb5" opacity=".5"/>
+    <circle cx="66" cy="60" r="4" fill="#ff9eb5" opacity=".5"/>
+    <path d="M50 56 l-2 3 h4 z" fill="#ff7a9c"/>
+  </svg>`;
+}
+
+/* ---------- 事件绑定 ---------- */
+$("#habitAdd").onclick=()=>{
+  const v=$("#habitInput").value.trim();if(!v){toast("先写点什么吧～");return;}
+  const icons=['🐾','💧','📚','🏃','🧘','🥗','😴','✍️','🎯','🌱','🎸','🧹'];
+  data.habits.push({id:uid(),name:v,icon:icons[Math.floor(Math.random()*icons.length)],records:{}});
+  $("#habitInput").value="";save();renderHabits();renderHeader();renderStats();toast("习惯已添加 🐾");
+};
+$("#todoAdd").onclick=()=>{
+  const v=$("#todoInput").value.trim();if(!v){toast("先写点什么吧～");return;}
+  data.todos.push({id:uid(),name:v,repeat:$("#todoRepeat").checked,time:$("#todoTime").value||"",done:false,doneDate:null});
+  $("#todoInput").value="";$("#todoRepeat").checked=false;$("#todoTime").value="";
+  save();renderTodos();renderHeader();toast("待办已添加 📝");
+};
+$$(".tab").forEach(t=>t.onclick=()=>{
+  $$(".tab").forEach(x=>x.classList.remove("active"));t.classList.add("active");
+  $$(".panel").forEach(p=>p.classList.remove("active"));
+  $("#panel-"+t.dataset.tab).classList.add("active");
+  if(t.dataset.tab==="stats")renderStats();
+});
+$("#reminderClose").onclick=()=>$("#reminder").classList.remove("show");
+
+/* settings */
+$("#setNotify").onchange=e=>{
+  data.settings.notify=e.target.checked;save();
+  if(e.target.checked && "Notification"in window && Notification.permission==="default"){
+    Notification.requestPermission();
+  }
+};
+$("#setBanner").onchange=e=>{data.settings.banner=e.target.checked;save();};
+$("#setCatName").oninput=e=>{data.settings.catName=e.target.value.trim()||"咪咪";save();renderHeader();};
+$("#petCat").onclick=()=>{
+  const m=$("#mascot");m.innerHTML=catSvg('happy');
+  setTimeout(()=>m.innerHTML=catSvg('normal'),700);
+  toast("喵～ 被你撸得很开心 🐾");
+};
+$("#resetAll").onclick=()=>{
+  if(!confirm("确定清空所有习惯和待办数据吗？此操作不可恢复！"))return;
+  data={habits:[],todos:[],settings:data.settings,lastOpen:todayStr()};
+  save();renderAll();toast("已清空全部数据");
+};
+$("#exportData").onclick=()=>{
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="喵喵自律备份_"+todayStr()+".json";a.click();
+  toast("备份已下载 💾");
+};
+
+/* 回车快捷添加 */
+$("#habitInput").addEventListener("keydown",e=>{if(e.key==="Enter")$("#habitAdd").click();});
+$("#todoInput").addEventListener("keydown",e=>{if(e.key==="Enter")$("#todoAdd").click();});
+
+/* ---------- 小工具 ---------- */
+function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+let toastTimer;
+function toast(msg){
+  const t=$("#toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),1800);
+}
+
+/* ---------- 启动 ---------- */
+function renderAll(){renderHeader();renderHabits();renderTodos();renderStats();}
+function init(){
+  dailyResetIfNeeded();
+  $("#mascot").innerHTML=catSvg('normal');
+  $("#setNotify").checked=data.settings.notify;
+  $("#setBanner").checked=data.settings.banner;
+  $("#setCatName").value=data.settings.catName||"";
+  renderAll();
+  showReminder();
+  // 若已授权通知，进入时提醒
+  if(data.settings.notify && "Notification"in window && Notification.permission==="granted"){
+    setTimeout(desktopNotify,800);
+  }
+}
+init();
+</script>
+</body>
+</html>
